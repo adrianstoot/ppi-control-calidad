@@ -60,7 +60,7 @@
       <div class="flex items-baseline gap-2">
         <h1 class="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2">
           CIV_L3
-          <span class="text-xs font-normal text-slate-400 hidden sm:inline">• Plan de Puntos de Inspección (PPI)</span>
+          <span class="text-xs font-normal text-slate-400 hidden sm:inline">• PPI & Replanteo de Cimentaciones</span>
         </h1>
       </div>
       <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-slate-400 border border-white/10 hidden md:inline">
@@ -138,36 +138,35 @@
     </div>
     <div class="text-[11px] font-mono text-slate-400 hidden xl:flex items-center gap-3">
       <span><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">←</kbd> <kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">→</kbd> Navegar</span>
-      <span><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">Espacio</kbd> Siguiente</span>
+      <span><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">B</kbd> Ocultar/Mostrar Tira</span>
       <span><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">F</kbd> Pantalla completa</span>
       <span>Doble clic: Zoom HD</span>
     </div>
   </nav>
-
 
   <!-- ============================================== -->
   <!-- 2. MAIN CONTAINER (VIEW PANES)                 -->
   <!-- ============================================== -->
   <main class="flex-1 relative flex overflow-hidden">
     
-    <!-- VIEW 1: PRESENTATION SLIDES (EXACTAMENTE IGUAL A SISTEMAS-ESTRUCTURALES) -->
-    <section id="view-slides" class="view-pane w-full h-full flex items-center justify-center p-2 sm:p-4 overflow-hidden">
-      <!-- Central Slide Display Container (16:9 Aspect Ratio) -->
-      <div class="relative w-full max-w-6xl max-h-full aspect-[16/9] flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/60 group">
+    <!-- VIEW 1: PRESENTATION SLIDES (MAXIMIZED VIEWPORT - IMAGENES OCUPAN CASI TODO EL ESPACIO) -->
+    <section id="view-slides" class="view-pane w-full h-full flex flex-col justify-between overflow-hidden relative">
+      <!-- Central Slide Display Container (Maximized & Sharp) -->
+      <div id="slideViewportContainer" class="flex-1 w-full h-[calc(100vh-9.5rem)] flex items-center justify-center p-1 sm:p-2 overflow-hidden relative group">
         
         <!-- Slide Image -->
         <img 
           id="mainSlideImg" 
           src="slides/slide_01.jpg" 
-          alt="Diapositiva PPI" 
-          class="slide-img w-full h-full object-contain pointer-events-auto cursor-zoom-in"
+          alt="Diapositiva PPI & Replanteo" 
+          class="slide-img-viewport fit-contain pointer-events-auto cursor-zoom-in"
           title="Doble clic para ampliar con zoom interactivo"
         />
 
         <!-- Previous Slide Trigger Button -->
         <button 
           id="prevSlideBtn" 
-          class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass-ui border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 shadow-xl hover:bg-white/10"
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass-ui border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 shadow-2xl hover:bg-white/15 z-20"
           title="Diapositiva Anterior (←)">
           <i data-lucide="chevron-left" class="w-6 h-6"></i>
         </button>
@@ -175,21 +174,34 @@
         <!-- Next Slide Trigger Button -->
         <button 
           id="nextSlideBtn" 
-          class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass-ui border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 shadow-xl hover:bg-white/10"
+          class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass-ui border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 shadow-2xl hover:bg-white/15 z-20"
           title="Diapositiva Siguiente (→)">
           <i data-lucide="chevron-right" class="w-6 h-6"></i>
         </button>
 
-        <!-- Minimalist Slide Counter (Bottom Right Inside Frame) -->
-        <div class="absolute bottom-3 right-3 px-2.5 py-1 rounded-full glass-ui text-[11px] font-mono text-slate-300 pointer-events-none flex items-center gap-1.5 border border-white/10">
-          <span id="currentSlideNum" class="text-amber-400 font-bold">01</span>
-          <span class="text-slate-500">/</span>
-          <span>39</span>
+        <!-- Top-Left Minimal Floating HUD Badge -->
+        <div class="absolute top-3 left-3 px-3 py-1.5 rounded-xl glass-ui text-xs font-medium text-slate-200 pointer-events-none border border-white/10 flex items-center gap-2 shadow-xl z-10 backdrop-blur-md">
+          <span id="slideCounterBadge" class="text-amber-400 font-mono font-bold">01 / 46</span>
+          <span class="text-slate-500">|</span>
+          <span id="slideChapterTag" class="font-semibold text-slate-100 max-w-[280px] sm:max-w-md truncate">1. Replanteo & Control Topográfico</span>
         </div>
 
-        <!-- Quick Chapter Tag (Bottom Left Inside Frame) -->
-        <div id="slideChapterTag" class="absolute bottom-3 left-3 px-3 py-1 rounded-full glass-ui text-xs font-medium text-slate-300 pointer-events-none border border-white/10">
-          1. Marco Normativo & Riesgo
+        <!-- Top-Right Floating Controls (Zoom HD & Toggle Filmstrip) -->
+        <div class="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+          <button 
+            id="slideZoomBtn"
+            title="Ampliar Imagen con Zoom HD (Z)"
+            class="px-2.5 py-1.5 rounded-xl glass-ui text-xs font-medium text-slate-200 hover:text-white border border-white/10 flex items-center gap-1.5 hover:bg-white/15 shadow-xl transition-all">
+            <i data-lucide="zoom-in" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span class="hidden sm:inline">Zoom HD</span>
+          </button>
+          <button 
+            id="toggleFilmstripBtn"
+            title="Alternar Tira de Diapositivas (Tecla B)"
+            class="px-2.5 py-1.5 rounded-xl glass-ui text-xs font-medium text-slate-200 hover:text-white border border-white/10 flex items-center gap-1.5 hover:bg-white/15 shadow-xl transition-all">
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span id="toggleFilmstripText" class="hidden sm:inline">Ocultar Tira (B)</span>
+          </button>
         </div>
 
       </div>
@@ -550,10 +562,10 @@
   <!-- ============================================== -->
   <!-- 3. BOTTOM MINIMALIST FILMSTRIP (THUMBNAILS)   -->
   <!-- ============================================== -->
-  <footer class="h-24 px-4 py-2 glass-ui border-t border-white/5 flex items-center gap-3 shrink-0 z-20">
+  <footer id="filmstripDrawer" class="h-20 px-3 py-1.5 glass-ui border-t border-white/5 flex items-center gap-2 shrink-0 z-20 transition-all duration-300">
     <!-- Filmstrip Scroll Container -->
-    <div id="filmstripContainer" class="filmstrip flex items-center gap-2.5 overflow-x-auto w-full h-full py-1 scroll-smooth">
-      <!-- 39 Miniatures injected by JS -->
+    <div id="filmstripContainer" class="filmstrip flex items-center gap-2 overflow-x-auto w-full h-full py-0.5 scroll-smooth">
+      <!-- Miniatures injected by JS -->
     </div>
   </footer>
 

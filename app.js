@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const state = {
     currentView: 'slides', // 'slides', 'content', 'viewer3d', 'tools', 'flashcards', 'gallery'
     currentSlide: 1,
-    totalSlides: PRESENTATION.totalSlides || 39,
+    totalSlides: (typeof PRESENTATION !== 'undefined' && PRESENTATION.totalSlides) ? PRESENTATION.totalSlides : 46,
     currentChapter: 1,
     
     // Search & Filter
@@ -64,11 +64,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // DOM Elements - Slide Presentation
   const mainSlideImg = document.getElementById('mainSlideImg');
-  const currentSlideNum = document.getElementById('currentSlideNum');
+  const slideCounterBadge = document.getElementById('slideCounterBadge') || document.getElementById('currentSlideNum');
   const slideChapterTag = document.getElementById('slideChapterTag');
   const prevSlideBtn = document.getElementById('prevSlideBtn');
   const nextSlideBtn = document.getElementById('nextSlideBtn');
   const filmstripContainer = document.getElementById('filmstripContainer');
+  const filmstripDrawer = document.getElementById('filmstripDrawer');
+  const slideViewportContainer = document.getElementById('slideViewportContainer');
+  const toggleFilmstripBtn = document.getElementById('toggleFilmstripBtn');
+  const toggleFilmstripText = document.getElementById('toggleFilmstripText');
+  const slideZoomBtn = document.getElementById('slideZoomBtn');
 
   // DOM Elements - Quiz Modal
   const openTestBtn = document.getElementById('openTestBtn');
@@ -213,7 +218,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 60);
 
     // Update counter
-    currentSlideNum.textContent = String(num).padStart(2, '0');
+    if (slideCounterBadge) {
+      slideCounterBadge.textContent = `${String(num).padStart(2, '0')} / ${state.totalSlides}`;
+    }
 
     // Update chapter tag & active pill
     const ch = PRESENTATION.chapters.find(c => num >= c.range[0] && num <= c.range[1]);
@@ -248,6 +255,47 @@ document.addEventListener('DOMContentLoaded', () => {
   prevSlideBtn.addEventListener('click', () => goToSlide(state.currentSlide - 1));
   nextSlideBtn.addEventListener('click', () => goToSlide(state.currentSlide + 1));
 
+  // Collapsible Filmstrip logic to maximize slide viewport
+  let filmstripCollapsed = false;
+  function toggleFilmstrip() {
+    filmstripCollapsed = !filmstripCollapsed;
+    if (filmstripDrawer) {
+      if (filmstripCollapsed) {
+        filmstripDrawer.classList.add('collapsed');
+        if (toggleFilmstripText) toggleFilmstripText.textContent = 'Mostrar Tira (B)';
+        if (mainSlideImg) {
+          mainSlideImg.classList.remove('fit-contain');
+          mainSlideImg.classList.add('fit-contain-collapsed');
+        }
+        if (slideViewportContainer) {
+          slideViewportContainer.classList.remove('h-[calc(100vh-9.5rem)]');
+          slideViewportContainer.classList.add('h-[calc(100vh-4.5rem)]');
+        }
+      } else {
+        filmstripDrawer.classList.remove('collapsed');
+        if (toggleFilmstripText) toggleFilmstripText.textContent = 'Ocultar Tira (B)';
+        if (mainSlideImg) {
+          mainSlideImg.classList.remove('fit-contain-collapsed');
+          mainSlideImg.classList.add('fit-contain');
+        }
+        if (slideViewportContainer) {
+          slideViewportContainer.classList.remove('h-[calc(100vh-4.5rem)]');
+          slideViewportContainer.classList.add('h-[calc(100vh-9.5rem)]');
+        }
+      }
+    }
+  }
+
+  if (toggleFilmstripBtn) {
+    toggleFilmstripBtn.addEventListener('click', toggleFilmstrip);
+  }
+
+  if (slideZoomBtn) {
+    slideZoomBtn.addEventListener('click', () => {
+      openLightbox(mainSlideImg.src, `Diapositiva ${state.currentSlide} / ${state.totalSlides}`);
+    });
+  }
+
   // Keyboard Navigation
   document.addEventListener('keydown', (e) => {
     // Avoid interfering with inputs or textareas
@@ -259,6 +307,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'ArrowRight' || e.key === ' ') {
       e.preventDefault();
       goToSlide(state.currentSlide + 1);
+    }
+    if (e.key === 'b' || e.key === 'B') toggleFilmstrip();
+    if (e.key === 'z' || e.key === 'Z') {
+      openLightbox(mainSlideImg.src, `Diapositiva ${state.currentSlide} / ${state.totalSlides}`);
     }
     if (e.key === 'f' || e.key === 'F') toggleFullscreen();
     if (e.key === 'Escape') {
@@ -408,27 +460,34 @@ document.addEventListener('DOMContentLoaded', () => {
   // ========================================================
   // 4. LIGHTBOX ZOOM MODAL
   // ========================================================
+  let panX = 0, panY = 0, isPanning = false, startPanX = 0, startPanY = 0;
+
   function openLightbox(src, caption) {
     state.lightboxImageSrc = src;
     state.lightboxZoom = 1.0;
+    panX = 0;
+    panY = 0;
     lightboxImg.src = src;
-    lightboxImg.style.transform = `scale(${state.lightboxZoom})`;
     lightboxCaption.textContent = caption || '';
     zoomLevelText.textContent = '100%';
+    applyZoom();
     lightboxModal.classList.remove('hidden');
   }
 
   function closeLightbox() {
     lightboxModal.classList.add('hidden');
+    state.lightboxZoom = 1.0;
+    panX = 0;
+    panY = 0;
   }
 
   closeLightboxBtn.addEventListener('click', closeLightbox);
   lightboxModal.addEventListener('click', (e) => {
-    if (e.target === lightboxModal) closeLightbox();
+    if (e.target === lightboxModal || e.target.classList.contains('zoom-container')) closeLightbox();
   });
 
   zoomInBtn.addEventListener('click', () => {
-    state.lightboxZoom = Math.min(state.lightboxZoom + 0.25, 3.0);
+    state.lightboxZoom = Math.min(state.lightboxZoom + 0.25, 4.0);
     applyZoom();
   });
   zoomOutBtn.addEventListener('click', () => {
@@ -437,13 +496,50 @@ document.addEventListener('DOMContentLoaded', () => {
   });
   resetZoomBtn.addEventListener('click', () => {
     state.lightboxZoom = 1.0;
+    panX = 0;
+    panY = 0;
     applyZoom();
   });
 
   function applyZoom() {
-    lightboxImg.style.transform = `scale(${state.lightboxZoom})`;
+    lightboxImg.style.transform = `translate(${panX}px, ${panY}px) scale(${state.lightboxZoom})`;
+    lightboxImg.style.cursor = state.lightboxZoom > 1 ? 'grab' : 'default';
     zoomLevelText.textContent = `${Math.round(state.lightboxZoom * 100)}%`;
   }
+
+  // Wheel zoom on Lightbox
+  lightboxModal.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      state.lightboxZoom = Math.min(state.lightboxZoom + 0.2, 4.0);
+    } else {
+      state.lightboxZoom = Math.max(state.lightboxZoom - 0.2, 0.5);
+    }
+    applyZoom();
+  }, { passive: false });
+
+  // Pan (drag) when zoomed
+  lightboxImg.addEventListener('mousedown', (e) => {
+    if (state.lightboxZoom <= 1) return;
+    isPanning = true;
+    startPanX = e.clientX - panX;
+    startPanY = e.clientY - panY;
+    lightboxImg.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!isPanning) return;
+    panX = e.clientX - startPanX;
+    panY = e.clientY - startPanY;
+    applyZoom();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isPanning) {
+      isPanning = false;
+      lightboxImg.style.cursor = state.lightboxZoom > 1 ? 'grab' : 'default';
+    }
+  });
 
   // ========================================================
   // 5. DIGITALIZED CONTENT TAB & NOTES
@@ -528,7 +624,29 @@ document.addEventListener('DOMContentLoaded', () => {
     const bodyEl = document.getElementById('activeContentBody');
     const notesArea = document.getElementById('activeContentNotes');
 
-    const s = allCourseSlides.find(item => item.slideNumber === slideNum);
+    let s = allCourseSlides.find(item => item.slideNumber === slideNum);
+    const pSlide = (typeof PRESENTATION !== 'undefined' && PRESENTATION.slides) ? PRESENTATION.slides[slideNum - 1] : null;
+
+    if (!s && pSlide) {
+      s = {
+        slideNumber: pSlide.id,
+        title: pSlide.title,
+        moduleNumber: pSlide.chapter || 1,
+        category: pSlide.chapterName || 'Replanteo & PPI',
+        content: `
+          <div class="space-y-4">
+            <div class="p-4 rounded-2xl bg-slate-900/60 border border-slate-800 space-y-2">
+              <span class="text-xs font-mono text-amber-400 font-semibold uppercase">${pSlide.chapterName}</span>
+              <h3 class="text-lg font-bold text-white">${pSlide.title}</h3>
+              <p class="text-slate-300 text-sm leading-relaxed">${pSlide.subtitle}</p>
+            </div>
+            <div class="flex justify-center p-3 rounded-2xl bg-black/40 border border-white/5">
+              <img src="slides/${pSlide.file}" alt="${pSlide.title}" class="max-h-[460px] rounded-xl object-contain shadow-2xl cursor-zoom-in hover:scale-[1.01] transition-transform" onclick="openLightbox('slides/${pSlide.file}', '${pSlide.title}')" />
+            </div>
+          </div>
+        `
+      };
+    }
     if (!s) return;
 
     if (titleEl) titleEl.textContent = `${s.slideNumber}. ${s.title}`;
@@ -804,6 +922,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!galleryContainer) return;
 
     const galleryItems = [
+      { file: 'replanteo_img/replanteo_01.jpg', title: 'Replanteo: Cimentación con cal y yeso sobre terreno', tag: 'Replanteo' },
+      { file: 'replanteo_img/replanteo_02.jpg', title: 'Replanteo: Camillas de madera y alineaciones', tag: 'Replanteo' },
+      { file: 'replanteo_img/replanteo_03.jpg', title: 'Replanteo: Estación total electrónica en obra', tag: 'Replanteo' },
+      { file: 'replanteo_img/replanteo_04.jpg', title: 'Replanteo: Replanteo de zapatas y ejes de pilares', tag: 'Replanteo' },
+      { file: 'replanteo_img/replanteo_05.jpg', title: 'Replanteo: Topografía con prisma y jalón', tag: 'Replanteo' },
+      { file: 'replanteo_img/replanteo_06.jpg', title: 'Replanteo: Marcado perimetral y encofrados', tag: 'Replanteo' },
+      { file: 'replanteo_img/replanteo_07.jpg', title: 'Replanteo: Control de cotas y nivelación', tag: 'Replanteo' },
       { file: 'MC1-NC 01 refino insuficiente-faltan separadores.png', title: 'NC-01: Excavación sin refino y falta separadores', tag: 'No Conformidad' },
       { file: 'MC1-NC 02 refino insuficiente-ausencia separadores.png', title: 'NC-02: Parrilla sobre tierra sin HL', tag: 'No Conformidad' },
       { file: 'MC1-NC 03 hormigon de limpieza insuficiente.png', title: 'NC-03: Hormigón de limpieza insuficiente', tag: 'No Conformidad' },
