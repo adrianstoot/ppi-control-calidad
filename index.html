@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="es" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CIV_L3 • Plan de Puntos de Inspección (PPI) & Control de Calidad</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            surface: {
+              950: '#07090e',
+              900: '#0c101b',
+              850: '#131a2b',
+              800: '#1a233a',
+              700: '#263147'
+            },
+            accent: {
+              gold: '#f59e0b',
+              amber: '#eab308',
+              sky: '#38bdf8',
+              emerald: '#10b981',
+              rose: '#ef4444'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Three.js & OrbitControls for 3D WebGL -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+
+  <!-- Google Fonts: Outfit, Space Grotesk, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col justify-between bg-surface-950 text-slate-100">
+
+  <!-- ============================================== -->
+  <!-- 1. TOP MINIMALIST APP BAR                      -->
+  <!-- ============================================== -->
+  <header class="h-14 px-3 sm:px-6 flex items-center justify-between glass-ui border-b border-white/5 z-30 shrink-0">
+    
+    <!-- Left: Brand / Course Pill -->
+    <div class="flex items-center gap-3">
+      <span class="w-2.5 h-2.5 rounded-full bg-amber-400 animate-pulse"></span>
+      <div class="flex items-baseline gap-2">
+        <h1 class="text-sm sm:text-base font-bold tracking-tight text-white flex items-center gap-2">
+          CIV_L3
+          <span class="text-xs font-normal text-slate-400 hidden sm:inline">• Plan de Puntos de Inspección (PPI)</span>
+        </h1>
+      </div>
+      <span class="text-[11px] font-mono px-2 py-0.5 rounded-full bg-white/5 text-slate-400 border border-white/10 hidden md:inline">
+        E.T.S.I.E. • CÓDIGO ESTRUCTURAL
+      </span>
+    </div>
+
+    <!-- Center: View Mode Switcher Pills -->
+    <div class="flex items-center gap-1 bg-surface-900/90 p-1 rounded-full border border-white/10 text-xs font-medium">
+      <button class="view-mode-btn active-nav-tab px-3 py-1 rounded-full transition-all flex items-center gap-1.5" data-view="slides">
+        <i data-lucide="presentation" class="w-3.5 h-3.5"></i>
+        <span>Diapositivas</span>
+      </button>
+      <button class="view-mode-btn text-slate-400 hover:text-white px-3 py-1 rounded-full transition-all flex items-center gap-1.5 hidden md:flex" data-view="content">
+        <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+        <span>Temario</span>
+      </button>
+      <button class="view-mode-btn text-slate-400 hover:text-white px-3 py-1 rounded-full transition-all flex items-center gap-1.5" data-view="viewer3d">
+        <i data-lucide="box" class="w-3.5 h-3.5"></i>
+        <span>Laboratorio 3D</span>
+      </button>
+      <button class="view-mode-btn text-slate-400 hover:text-white px-3 py-1 rounded-full transition-all flex items-center gap-1.5 hidden lg:flex" data-view="tools">
+        <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
+        <span>Calculadoras</span>
+      </button>
+      <button class="view-mode-btn text-slate-400 hover:text-white px-3 py-1 rounded-full transition-all flex items-center gap-1.5 hidden sm:flex" data-view="flashcards">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        <span>Flashcards</span>
+      </button>
+      <button class="view-mode-btn text-slate-400 hover:text-white px-3 py-1 rounded-full transition-all flex items-center gap-1.5" data-view="gallery">
+        <i data-lucide="image" class="w-3.5 h-3.5"></i>
+        <span>Galería HD</span>
+      </button>
+    </div>
+
+    <!-- Right: Quick Tools -->
+    <div class="flex items-center gap-1.5 sm:gap-2">
+      <!-- Chapter Mobile Dropdown -->
+      <select id="chapterMobileSelect" class="lg:hidden text-xs bg-surface-850 border border-white/10 text-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
+        <!-- Injected by JS -->
+      </select>
+
+      <!-- TEST BUTTON (HERO ACTION) -->
+      <button 
+        id="openTestBtn" 
+        class="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-semibold text-xs transition-all shadow-lg shadow-amber-500/20 active:scale-95">
+        <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+        <span>Tipo Test</span>
+      </button>
+
+      <!-- Fullscreen Toggle -->
+      <button 
+        id="fullscreenBtn" 
+        title="Pantalla Completa (F)"
+        class="p-2 text-slate-400 hover:text-white rounded-full hover:bg-white/5 transition-colors">
+        <i data-lucide="maximize" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Theme Toggle -->
+      <button 
+        id="themeToggleBtn" 
+        title="Alternar Tema"
+        class="p-2 text-slate-400 hover:text-white rounded-full hover:bg-white/5 transition-colors">
+        <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+        <i data-lucide="moon" class="w-4 h-4 block dark:hidden"></i>
+      </button>
+    </div>
+
+  </header>
+
+  <!-- Secondary Chapter Pills Bar (For Slides & Content) -->
+  <nav class="h-10 px-4 bg-surface-900/60 border-b border-white/5 flex items-center justify-between shrink-0 overflow-x-auto filmstrip">
+    <div class="flex items-center gap-1" id="chapterPillsContainer">
+      <!-- Injected by JS -->
+    </div>
+    <div class="text-[11px] font-mono text-slate-400 hidden xl:flex items-center gap-3">
+      <span><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">←</kbd> <kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">→</kbd> Navegar</span>
+      <span><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">Espacio</kbd> Siguiente</span>
+      <span><kbd class="px-1.5 py-0.5 rounded bg-white/10 text-[10px]">F</kbd> Pantalla completa</span>
+      <span>Doble clic: Zoom HD</span>
+    </div>
+  </nav>
+
+
+  <!-- ============================================== -->
+  <!-- 2. MAIN CONTAINER (VIEW PANES)                 -->
+  <!-- ============================================== -->
+  <main class="flex-1 relative flex overflow-hidden">
+    
+    <!-- VIEW 1: PRESENTATION SLIDES (EXACTAMENTE IGUAL A SISTEMAS-ESTRUCTURALES) -->
+    <section id="view-slides" class="view-pane w-full h-full flex items-center justify-center p-2 sm:p-4 overflow-hidden">
+      <!-- Central Slide Display Container (16:9 Aspect Ratio) -->
+      <div class="relative w-full max-w-6xl max-h-full aspect-[16/9] flex items-center justify-center rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/60 group">
+        
+        <!-- Slide Image -->
+        <img 
+          id="mainSlideImg" 
+          src="slides/slide_01.jpg" 
+          alt="Diapositiva PPI" 
+          class="slide-img w-full h-full object-contain pointer-events-auto cursor-zoom-in"
+          title="Doble clic para ampliar con zoom interactivo"
+        />
+
+        <!-- Previous Slide Trigger Button -->
+        <button 
+          id="prevSlideBtn" 
+          class="absolute left-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass-ui border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 shadow-xl hover:bg-white/10"
+          title="Diapositiva Anterior (←)">
+          <i data-lucide="chevron-left" class="w-6 h-6"></i>
+        </button>
+
+        <!-- Next Slide Trigger Button -->
+        <button 
+          id="nextSlideBtn" 
+          class="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-full glass-ui border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all hover:scale-105 active:scale-95 shadow-xl hover:bg-white/10"
+          title="Diapositiva Siguiente (→)">
+          <i data-lucide="chevron-right" class="w-6 h-6"></i>
+        </button>
+
+        <!-- Minimalist Slide Counter (Bottom Right Inside Frame) -->
+        <div class="absolute bottom-3 right-3 px-2.5 py-1 rounded-full glass-ui text-[11px] font-mono text-slate-300 pointer-events-none flex items-center gap-1.5 border border-white/10">
+          <span id="currentSlideNum" class="text-amber-400 font-bold">01</span>
+          <span class="text-slate-500">/</span>
+          <span>39</span>
+        </div>
+
+        <!-- Quick Chapter Tag (Bottom Left Inside Frame) -->
+        <div id="slideChapterTag" class="absolute bottom-3 left-3 px-3 py-1 rounded-full glass-ui text-xs font-medium text-slate-300 pointer-events-none border border-white/10">
+          1. Marco Normativo & Riesgo
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 2: TEMARIO DIGITALIZADO & NOTAS -->
+    <section id="view-content" class="view-pane hidden w-full h-full flex flex-col md:flex-row overflow-hidden">
+      <!-- Left sidebar: Slide list and search -->
+      <aside class="w-full md:w-80 h-1/3 md:h-full glass-ui border-r border-white/5 flex flex-col shrink-0">
+        <div class="p-3 border-b border-white/5 space-y-2">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-2.5"></i>
+            <input 
+              id="contentSearchInput" 
+              type="text" 
+              placeholder="Buscar en el temario..." 
+              class="w-full bg-surface-900 border border-white/10 rounded-xl pl-9 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400"
+            />
+          </div>
+          <select id="contentModuleFilter" class="w-full bg-surface-900 border border-white/10 rounded-xl px-2.5 py-1.5 text-xs text-slate-300 focus:outline-none">
+            <!-- Injected by JS -->
+          </select>
+        </div>
+        <div id="contentSlideList" class="flex-1 overflow-y-auto p-2 space-y-1.5">
+          <!-- Injected by JS -->
+        </div>
+      </aside>
+
+      <!-- Right main: Digitalized slide details & Personal Notes -->
+      <article class="flex-1 h-2/3 md:h-full overflow-y-auto p-4 sm:p-8 space-y-6">
+        <div class="flex items-center justify-between pb-3 border-b border-white/5">
+          <div>
+            <span id="activeContentBadge" class="text-xs font-mono text-amber-400 font-semibold uppercase">M1 • General</span>
+            <h2 id="activeContentTitle" class="text-lg sm:text-2xl font-bold text-white mt-1">Cargando temario...</h2>
+          </div>
+          <button onclick="window.print()" class="px-3 py-1.5 rounded-full border border-white/10 hover:border-amber-400 text-xs text-slate-300 flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+            <span>Imprimir</span>
+          </button>
+        </div>
+
+        <div id="activeContentBody" class="prose prose-invert max-w-none text-slate-300 text-sm space-y-4">
+          <!-- Injected by JS -->
+        </div>
+
+        <!-- Personal Notes Area -->
+        <div class="p-4 rounded-2xl glass-panel border border-white/10 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-bold text-amber-400 flex items-center gap-1.5">
+              <i data-lucide="edit-3" class="w-3.5 h-3.5"></i> Mis Apuntes Personales para esta Diapositiva
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono">Guardado automático en navegador</span>
+          </div>
+          <textarea 
+            id="activeContentNotes" 
+            rows="3" 
+            placeholder="Escribe aquí tus observaciones de clase, dudas o anotaciones de obra..."
+            class="w-full bg-surface-900 border border-white/10 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-amber-400 resize-none font-sans"
+          ></textarea>
+        </div>
+      </article>
+    </section>
+
+    <!-- VIEW 3: LABORATORIO 3D WEBGL -->
+    <section id="view-viewer3d" class="view-pane hidden w-full h-full flex flex-col overflow-hidden">
+      <!-- 3D Header & Model Switcher -->
+      <div class="h-12 px-4 glass-ui border-b border-white/5 flex items-center justify-between shrink-0 overflow-x-auto filmstrip">
+        <div class="flex items-center gap-1.5">
+          <button class="model-btn px-3 py-1 rounded-full text-xs font-medium bg-amber-500 text-black font-bold transition-all" data-model="footing">
+            1. Zapata & Armaduras
+          </button>
+          <button class="model-btn px-3 py-1 rounded-full text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all" data-model="settlement">
+            2. Asiento & Fisura 45º
+          </button>
+          <button class="model-btn px-3 py-1 rounded-full text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all" data-model="micropiles">
+            3. Recalce Micropilotes
+          </button>
+          <button class="model-btn px-3 py-1 rounded-full text-xs font-medium text-slate-300 hover:text-white hover:bg-white/5 transition-all" data-model="rebar_hook">
+            4. Mandril Doblado (49.3)
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="toggleWireframeBtn" class="p-1.5 rounded-lg border border-white/10 hover:border-amber-400 text-xs text-slate-300 flex items-center gap-1" title="Modo Alambre">
+            <i data-lucide="box" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Alambre</span>
+          </button>
+          <button id="toggleDeformBtn" class="p-1.5 rounded-lg border border-white/10 hover:border-amber-400 text-xs text-slate-300 flex items-center gap-1" title="Animación Cinemática">
+            <i data-lucide="play" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Simulación</span>
+          </button>
+          <button id="resetCamBtn" class="p-1.5 rounded-lg border border-white/10 hover:border-amber-400 text-xs text-slate-300" title="Restablecer Vista">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 3D Canvas Stage -->
+      <div class="flex-1 relative w-full h-full overflow-hidden bg-surface-950">
+        <div id="threeCanvasContainer" class="w-full h-full"></div>
+
+        <!-- Floating Model Info Card -->
+        <div class="absolute bottom-4 left-4 max-w-md p-4 rounded-2xl glass-panel border border-white/10 shadow-2xl pointer-events-none space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <h4 id="viewer3dTitle" class="text-sm font-bold text-white">Modelo 1: Zapata Superficial con Armaduras</h4>
+          </div>
+          <p id="viewer3dDesc" class="text-xs text-slate-300 leading-relaxed">
+            Visualización interactiva de la solera de hormigón de limpieza (HL ≥ 10 cm), separadores de mortero homologados (70 mm) y parrilla inferior de acero B 500 S.
+          </p>
+          <div id="viewer3dSpecs" class="flex flex-wrap gap-1.5 text-[11px] font-mono pt-1">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+        <div class="absolute top-4 right-4 text-[11px] font-mono text-slate-400 glass-ui px-3 py-1.5 rounded-full border border-white/10 pointer-events-none">
+          Click + Arrastrar: Rotar 360º • Scroll: Zoom • Click derecho: Desplazar
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: CALCULADORAS & COMPROBADORES TÉCNICOS -->
+    <section id="view-tools" class="view-pane hidden w-full h-full overflow-y-auto p-4 sm:p-8 space-y-8">
+      <div class="max-w-6xl mx-auto space-y-8">
+        
+        <div>
+          <span class="text-xs font-mono text-amber-400 font-bold uppercase">Herramientas Técnicas de Inspección</span>
+          <h2 class="text-xl sm:text-3xl font-bold text-white mt-1">Calculadoras & Comprobadores de Calidad</h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            Validadores automáticos basados en los Anexos I a III y el Código Estructural Art. 49 para la supervisión de obra.
+          </p>
+        </div>
+
+        <!-- Grid of 2 Top Calculators -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          
+          <!-- Tool 1: Matriz de Riesgo Anexo I & II -->
+          <div class="p-6 rounded-3xl glass-panel border border-white/10 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-white text-base flex items-center gap-2">
+                <i data-lucide="shield-alert" class="w-5 h-5 text-amber-400"></i>
+                Matriz de Riesgo y Frecuencias (Anexo I & II)
+              </h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">Anexo I</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label class="text-slate-400 block mb-1">Uso del Edificio:</label>
+                <select id="riskUseType" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+                  <option value="vivienda">Edificio de Viviendas</option>
+                  <option value="otros">Otros Edificios (m² constr.)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">Nº Viv. o m² construidos:</label>
+                <input id="riskUnits" type="number" value="14" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">Aceleración Sísmica a_b:</label>
+                <select id="riskSeismic" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+                  <option value="0.04">a_b &lt; 0.08 g (Nivel 1)</option>
+                  <option value="0.09" selected>0.08 g ≤ a_b &lt; 0.12 g (Nivel 2)</option>
+                  <option value="0.14">a_b ≥ 0.12 g (Nivel 3)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">Tipo de Terreno (DB-SE-C):</label>
+                <select id="riskSoil" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+                  <option value="T1">T1: Terreno Favorable (Roca)</option>
+                  <option value="T2" selected>T2: Terreno Medio (Grava/Arena)</option>
+                  <option value="T3">T3: Terreno Desfavorable (Arcilla)</option>
+                </select>
+              </div>
+            </div>
+
+            <button id="calcRiskBtn" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs transition-all">
+              Calcular Nivel de Riesgo y Frecuencias
+            </button>
+
+            <div id="riskResultBox"></div>
+          </div>
+
+          <!-- Tool 2: Calculadora de Longitudes de Anclaje Art. 49.5 -->
+          <div class="p-6 rounded-3xl glass-panel border border-white/10 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-white text-base flex items-center gap-2">
+                <i data-lucide="ruler" class="w-5 h-5 text-sky-400"></i>
+                Longitud de Anclaje & Solape (Art. 49.5)
+              </h3>
+              <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 border border-sky-500/30">Cód. Estructural</span>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div>
+                <label class="text-slate-400 block mb-1">Resistencia Hormigón (fck):</label>
+                <select id="anchorFck" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+                  <option value="25" selected>25 N/mm² (m = 1.5)</option>
+                  <option value="30">30 N/mm² (m = 1.3)</option>
+                  <option value="35">35 N/mm² (m = 1.2)</option>
+                  <option value="40">40 N/mm² (m = 1.1)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">Tipo de Acero:</label>
+                <select id="anchorSteel" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+                  <option value="B500S" selected>B 500 S / SD (fyk = 500)</option>
+                  <option value="B400S">B 400 S / SD (fyk = 400)</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">Diámetro de la Barra Ø:</label>
+                <select id="anchorPhi" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+                  <option value="12">Ø 12 mm</option>
+                  <option value="16" selected>Ø 16 mm</option>
+                  <option value="20">Ø 20 mm</option>
+                  <option value="25">Ø 25 mm</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-slate-400 block mb-1">Posición de Adherencia:</label>
+                <select id="anchorPos" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+                  <option value="I" selected>Posición I (Buena adherencia)</option>
+                  <option value="II">Posición II (Mala / 1.4 lb)</option>
+                </select>
+              </div>
+              <div class="col-span-2">
+                <label class="text-slate-400 block mb-1">Forma de Anclaje:</label>
+                <select id="anchorHook" class="w-full bg-surface-900 border border-white/10 rounded-xl p-2 text-slate-200">
+                  <option value="patilla" selected>Patilla a 90º o Gancho (β = 0.7 en tracción)</option>
+                  <option value="recta">Prolongación Recta (β = 1.0)</option>
+                  <option value="soldada">Barra Transversal Soldada (β = 0.7)</option>
+                </select>
+              </div>
+            </div>
+
+            <button id="calcAnchorBtn" class="w-full py-2.5 rounded-xl bg-sky-500 hover:bg-sky-400 text-black font-bold text-xs transition-all">
+              Calcular Longitudes lb y lb,neta
+            </button>
+
+            <div id="anchorResultBox"></div>
+          </div>
+
+        </div>
+
+        <!-- Tool 3: Checklist Interactivo PPI MC1 (Cimentación Superficial) -->
+        <div class="p-6 rounded-3xl glass-panel border border-white/10 space-y-4">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-white/5">
+            <div>
+              <div class="flex items-center gap-2">
+                <h3 class="font-bold text-white text-base">Checklist Interactivo: PPI MC1 Cimentación Superficial</h3>
+                <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">Obra: Metaverso</span>
+              </div>
+              <p class="text-xs text-slate-400 mt-1">Supervisión en obra zapata a zapata. Marca la conformidad y emite el acta de inspección.</p>
+            </div>
+            
+            <div class="flex items-center gap-3">
+              <div id="ppiSummaryStats" class="text-xs font-mono"></div>
+              <button id="printChecklistBtn" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-slate-200 font-semibold text-xs flex items-center gap-1.5 transition-all">
+                <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+                <span>Imprimir Acta PPI</span>
+              </button>
+            </div>
+          </div>
+
+          <div id="ppiChecklistContainer" class="space-y-2">
+            <!-- Injected by JS -->
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 5: FLASHCARDS 3D -->
+    <section id="view-flashcards" class="view-pane hidden w-full h-full flex flex-col items-center justify-center p-4 overflow-hidden">
+      <div class="w-full max-w-lg space-y-6 text-center">
+        
+        <div class="space-y-1">
+          <span class="text-xs font-mono text-amber-400 font-bold uppercase">Entrenamiento Mnemotécnico 3D</span>
+          <h2 class="text-xl sm:text-2xl font-bold text-white">Flashcards de Tolerancias & Artículos Clave</h2>
+          <p class="text-xs text-slate-400">Haz clic en la tarjeta o en el botón para girarla en 3D y comprobar tu memoria.</p>
+        </div>
+
+        <!-- 3D Card Container -->
+        <div class="perspective-1000 w-full h-72">
+          <div id="flashcardElement" class="flashcard transform-style-3d relative w-full h-full rounded-3xl cursor-pointer">
+            
+            <!-- Front Face -->
+            <div class="backface-hidden absolute inset-0 glass-panel rounded-3xl p-6 sm:p-8 border border-white/15 flex flex-col justify-between shadow-2xl text-left bg-gradient-to-br from-surface-900 to-surface-850">
+              <div class="flex items-center justify-between">
+                <span id="flashcardCategory" class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 font-semibold">Replanteo</span>
+                <span id="flashcardCounter" class="text-xs font-mono text-slate-400">1 / 8</span>
+              </div>
+              <h3 id="flashcardFrontText" class="text-base sm:text-xl font-bold text-white leading-snug my-auto">
+                ¿Cuál es la tolerancia máxima en planta para la variación del centro de gravedad de una zapata?
+              </h3>
+              <div class="text-[11px] text-slate-400 flex items-center justify-between border-t border-white/10 pt-3">
+                <span class="flex items-center gap-1.5"><i data-lucide="rotate-cw" class="w-3.5 h-3.5 text-amber-400"></i> Clic para voltear</span>
+                <span class="text-amber-400 font-bold">ANVERSO</span>
+              </div>
+            </div>
+
+            <!-- Back Face (Flipped) -->
+            <div class="backface-hidden rotate-y-180 absolute inset-0 glass-panel rounded-3xl p-6 sm:p-8 border border-emerald-500/30 flex flex-col justify-between shadow-2xl text-left bg-gradient-to-br from-emerald-950/40 to-surface-900">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-mono px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-semibold">Respuesta Normativa</span>
+                <span class="text-xs font-mono text-emerald-400">REVERSO</span>
+              </div>
+              <p id="flashcardBackText" class="text-sm sm:text-base font-semibold text-emerald-200 leading-relaxed my-auto">
+                ≤ 2% de la dimensión del cimiento, sin exceder en ningún caso los 50 mm (Código Estructural Art. 65.2).
+              </p>
+              <div class="text-[11px] text-slate-400 flex items-center justify-between border-t border-white/10 pt-3">
+                <span class="text-emerald-400">Criterio de Aceptación</span>
+                <span class="text-slate-500">E.T.S.I.E.</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex items-center justify-center gap-3">
+          <button id="prevFlashcardBtn" class="p-3 rounded-full glass-ui border border-white/10 hover:border-amber-400 text-white transition-all hover:scale-105 active:scale-95" title="Anterior">
+            <i data-lucide="chevron-left" class="w-5 h-5"></i>
+          </button>
+          <button id="flipFlashcardBtn" class="px-5 py-2.5 rounded-full bg-amber-400 text-black font-semibold text-xs hover:bg-amber-300 transition-all flex items-center gap-2 active:scale-95">
+            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+            <span>Voltear Tarjeta</span>
+          </button>
+          <button id="nextFlashcardBtn" class="p-3 rounded-full glass-ui border border-white/10 hover:border-amber-400 text-white transition-all hover:scale-105 active:scale-95" title="Siguiente">
+            <i data-lucide="chevron-right" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 6: GALERÍA HD Y FORENSE -->
+    <section id="view-gallery" class="view-pane hidden w-full h-full overflow-y-auto p-4 sm:p-8 space-y-6">
+      <div class="max-w-6xl mx-auto space-y-6">
+        <div>
+          <span class="text-xs font-mono text-amber-400 font-bold uppercase">Archivo Técnico & Casos de Obra</span>
+          <h2 class="text-xl sm:text-3xl font-bold text-white mt-1">Galería de No Conformidades & Planos en HD</h2>
+          <p class="text-xs sm:text-sm text-slate-400 mt-1">
+            Imágenes de alta resolución, fichas de patología, detalles normativos del Código Estructural y Anexos I a IV. Clic para ampliar con zoom interactivo.
+          </p>
+        </div>
+
+        <div id="galleryGridContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <!-- Injected by JS -->
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ============================================== -->
+  <!-- 3. BOTTOM MINIMALIST FILMSTRIP (THUMBNAILS)   -->
+  <!-- ============================================== -->
+  <footer class="h-24 px-4 py-2 glass-ui border-t border-white/5 flex items-center gap-3 shrink-0 z-20">
+    <!-- Filmstrip Scroll Container -->
+    <div id="filmstripContainer" class="filmstrip flex items-center gap-2.5 overflow-x-auto w-full h-full py-1 scroll-smooth">
+      <!-- 39 Miniatures injected by JS -->
+    </div>
+  </footer>
+
+
+  <!-- ============================================== -->
+  <!-- 4. MODAL MINIMALISTA TIPO TEST                -->
+  <!-- ============================================== -->
+  <div id="testModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="relative w-full max-w-lg glass-ui rounded-3xl p-6 sm:p-8 border border-white/10 shadow-2xl space-y-6">
+      
+      <!-- Close Button -->
+      <button id="closeTestBtn" class="absolute top-5 right-5 text-slate-400 hover:text-white p-1 rounded-full hover:bg-white/5 transition-colors">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Test Header -->
+      <div class="space-y-1">
+        <div class="flex items-center justify-between text-xs text-slate-400 font-mono">
+          <span class="text-amber-400 font-semibold uppercase tracking-wider">Test de Evaluación Rápida • PPI</span>
+          <span id="quizCounter">1 / 15</span>
+        </div>
+        <h3 id="quizQuestion" class="text-base sm:text-lg font-bold text-white leading-snug pt-1">
+          Cargando pregunta...
+        </h3>
+        <!-- Progress bar -->
+        <div class="w-full h-1.5 bg-surface-800 rounded-full overflow-hidden mt-3">
+          <div id="quizProgressBar" class="h-full bg-amber-400 transition-all duration-300" style="width: 10%;"></div>
+        </div>
+      </div>
+
+      <!-- Test Options -->
+      <div id="quizOptions" class="space-y-2.5">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- Instant Feedback Box -->
+      <div id="quizFeedback" class="hidden p-3.5 rounded-2xl text-xs space-y-1 transition-all">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- Modal Footer / Navigation -->
+      <div class="flex items-center justify-between pt-2 border-t border-white/5">
+        <button id="quizJumpSlideBtn" class="text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium transition-colors">
+          <i data-lucide="eye" class="w-3.5 h-3.5"></i>
+          <span>Ver diapositiva de referencia</span>
+        </button>
+
+        <button id="quizNextBtn" class="px-4 py-2 rounded-full bg-white text-black font-semibold text-xs hover:bg-slate-200 transition-all active:scale-95 flex items-center gap-1.5 opacity-50 pointer-events-none">
+          <span>Siguiente</span>
+          <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <!-- Test Completed View -->
+      <div id="quizSummaryBox" class="hidden text-center py-4 space-y-4">
+        <div class="w-14 h-14 rounded-full bg-amber-400/20 text-amber-400 mx-auto flex items-center justify-center text-xl font-bold border border-amber-400/30">
+          ✓
+        </div>
+        <div>
+          <h4 class="text-xl font-bold text-white">¡Test Finalizado!</h4>
+          <p id="quizScoreReport" class="text-xs text-slate-300 mt-1">
+            Has completado la evaluación.
+          </p>
+        </div>
+        <button id="quizRestartBtn" class="px-5 py-2 rounded-full bg-amber-400 text-black font-semibold text-xs hover:bg-amber-300 transition-all">
+          Reiniciar Test
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- 5. LIGHTBOX MODAL WITH ZOOM CONTROLS           -->
+  <!-- ============================================== -->
+  <div id="lightboxModal" class="hidden fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col justify-between p-4">
+    <!-- Top Bar -->
+    <div class="h-12 flex items-center justify-between px-4 glass-ui rounded-full border border-white/10 shrink-0">
+      <div class="flex items-center gap-2">
+        <i data-lucide="image" class="w-4 h-4 text-amber-400"></i>
+        <span id="lightboxCaption" class="text-xs font-semibold text-white truncate max-w-xs sm:max-w-md"></span>
+      </div>
+      
+      <!-- Zoom Actions -->
+      <div class="flex items-center gap-2">
+        <button id="zoomOutBtn" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10" title="Alejar (-)">
+          <i data-lucide="minus" class="w-4 h-4"></i>
+        </button>
+        <span id="zoomLevelText" class="text-[11px] font-mono text-amber-400 w-12 text-center">100%</span>
+        <button id="zoomInBtn" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10" title="Acercar (+)">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+        </button>
+        <button id="resetZoomBtn" class="px-2 py-1 text-slate-300 hover:text-white text-[10px] rounded-lg hover:bg-white/10 font-mono" title="Restablecer">
+          1:1
+        </button>
+        <div class="h-4 w-[1px] bg-white/10 mx-1"></div>
+        <button id="closeLightboxBtn" class="p-1.5 text-slate-300 hover:text-white rounded-lg hover:bg-white/10" title="Cerrar (Esc)">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Center Image Container -->
+    <div class="flex-1 w-full h-full flex items-center justify-center p-2 overflow-hidden zoom-container">
+      <img id="lightboxImg" src="" alt="Ampliación HD" class="max-w-full max-h-full object-contain transition-transform duration-150 select-none shadow-2xl rounded-xl">
+    </div>
+
+    <!-- Bottom Hint -->
+    <div class="text-center text-[11px] font-mono text-slate-500 py-1">
+      Arrastra para mover la imagen • Clic fuera o Esc para cerrar
+    </div>
+  </div>
+
+
+  <!-- ============================================== -->
+  <!-- 6. SCRIPTS                                     -->
+  <!-- ============================================== -->
+  <script src="slides_data.js"></script>
+  <script src="courseData.js"></script>
+  <script src="viewer3d.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
